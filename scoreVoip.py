@@ -1,24 +1,38 @@
-import subprocess
+from most.voip.api import VoipLib
 import sys
 
-teamExten = sys.argv[1] + "99"
-sipcmdString = "l1;c" + teamExten + ";d1234;h"
+my_voip = VoipLib()
 
-gateway = "10.0.2.99"
-username = sys.argv[2]
-password = sys.argv[3]
+voip_params = {
+        'username': 'scoringEngine',
+        'sip_server_address': '10.0.2.99',
+        'sip_server_user': '2699',
+        'sip_server_pwd': 'Sc0reTh@tV0IP',
+        'sip_server_transport': 'udp',
+        'log_level': 0,
+        'debug': True
+}
 
-output = subprocess.Popen(["sipcmd", "-P" "sip", "-u",username, "-c", password, "-w", gateway, "-x", sipcmdString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+status = {'status': "failure"}
 
-#output = subprocess.Popen(["./sipcmd"])
+def notify_events(voip_event_type, voip_event, params):
+        if voip_event == "VOIP_EVENT__CALL_ACTIVE":
+                status['status'] = "success"
+#       print "Received Event Type:%s -> Event: %s Params: %s" % (voip_event_type, voip_event, params)
 
-out = output.communicate()
+my_voip.init_lib(voip_params, notify_events)
 
-#print("************* OUTPUT *****************")
-for line in out:
-	if line.find("Problem running command sequence") != -1:
-		#print "Error"
-		print("fail")
-		quit()
+my_voip.register_account()
 
-print("pass")
+my_extension = sys.argv[1] + "99"
+my_voip.make_call(my_extension)
+
+import time
+
+time.sleep(5)
+
+print(status['status'])
+if status['status'] == "success":
+        sys.exit(0)
+else:
+        sys.exit(1)
